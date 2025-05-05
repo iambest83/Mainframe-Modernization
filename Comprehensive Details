@@ -1,0 +1,70 @@
+Context:
+
+Mainframe systems have been the backbone of enterprise computing for decades, renowned for their reliability, performance, and security. However, the evolving business landscape demands agility, scalability, and cost-effectiveness, prompting organizations to explore cloud-based solutions. Major technology companies, including cloud providers and system integrators, have invested heavily in mainframe migration practices, recognizing the significance of this transformation.
+
+Mainframes and cloud computing each have their strengths and specific use cases. It's not fair to generalize either, and in practice, a hybrid approach is common. This post will explore a practical solution for mainframe workload migration using a hybrid pattern, where certain workloads move to the cloud while still interacting with on-premises applications and data sources.
+
+I aim to provide an end-to-end workflow with detailed, hands-on information necessary for implementing production-ready solutions. The focus is on migrating a mainframe workload to IBM Cloud, but the solution remains cloud-agnostic. To emphasize this, I'll conclude with a reference architecture for AWS.
+
+This documentation takes a solutions architect's perspective, outlining a mainframe workload migration. While some standard assumptions are made for simplicity, the scenario remains realistic. The post also covers a multi-zone deployment strategy for high availability and disaster recovery.
+
+
+Do note that we will not be diving into the aspects of code transformations and database migrations in this section.
+
+Methodology:
+The proposed mainframe modernization strategy adopts a hybrid approach, enabling the co-existence of mainframe and cloud environments. By leveraging refactoring techniques, mainframe workloads are transformed into cloud-native applications, while maintaining integration with on-premises systems and data sources. The solution encompasses various aspects, including:
+
+1. Application refactoring: Transforming mainframe applications, such as CICS and BMS maps, into modern, cloud-native Java applications
+2. Data migration: Migrating mainframe data stores, including DB2 and VSAM datasets, to cloud-based managed database services, such as IBM Db2 on Cloud or AWS Aurora PostgreSQL
+3. Secure connectivity: Establishing secure connectivity between the cloud environment and on-premises systems, leveraging technologies like Direct Connect or Virtual Private Network (VPN)
+4. Integration and interoperability: Facilitating seamless integration and interoperability between the migrated applications and existing on-premises systems through secure file transfers and API-based interactions
+5. Security and compliance: Implementing robust security measures, including encryption, access controls, network segmentation, and threat detection, to ensure data protection and regulatory compliance
+6. High availability and disaster recovery: Deploying multi-zone and multi-region strategies to achieve high availability and disaster recovery, aligning with the original mainframe environment's uptime requirements
+
+
+Reference Architecture (IBM Cloud):
+The section provides detailed reference architectures tailored for both IBM Cloud and Amazon Web Services (AWS), demonstrating the cloud-agnostic nature of the proposed solution. These architectures illustrate the integration of various cloud services and components, 
+such as load balancers, virtual private endpoints, bastion hosts, and role-based access controls (RBAC), to address the specific requirements of the migrated mainframe workload.
+
+
+Web users with different personas interact with the UI screens (refactored from CICS/BMS maps) over the public internet. The traffic here is shown to be routed through IBM Cloud Internet Service, which includes Domain Name Service (DNS), Global Load Balancer (GLB), Distributed Denial of Service (DDoS) protection, Web Application Firewall (WAF), Transport Layer Security (TLS), Rate Limiting, Smart Routing, and Caching.
+On-premises applications communicate through Direct Connect for a secure, fast, and reliable connection to the platform.
+The on-premises applications exchange files with the migrated application running on the IBM cloud using a managed file transfer service.
+Secure Sockets Layer (SSL) or Transport Layer Security (TLS) are used to authenticate data transfers originating from outside the network.
+The incoming traffic hits a Load Balancer; SSL offloading happens at the Web Application Firewalls. All in-transit data is aggregated and analyzed for threats and compliance adherence.
+East-West traffic is controlled through Access Control Lists (ACL) and Security Groups (SG). ACL and SG help isolate workloads from one another and secure them individually.
+ALB will route the traffic based on standard health checks and other routing rules providing necessary resiliency.
+Incoming and outgoing files would leverage a predefined Landing Zone, which may be set up using any File Gateway (e.g., IBM Sterling File Gateway) using standard file transfer protocols.
+Both Online and Batch applications had been refactored into Java Applications running on Virtual Machines on the cloud.
+Leveraging the Virtual Private Endpoint, the application layers connect to the native services (Managed and Hosted) on the IBM cloud without traversing through the public internet.
+All data at rest (datastore, database, backups, snapshots) will be encrypted for enhanced security.
+Outbound files are being transferred to on-premises downstream applications using the same secured network.
+Admin and Management traffic would be regulated with privileged access for operations and maintenance.
+Bastion Host provides admin access to the virtual machines (VMs), maximizing security by minimizing open ports.
+Service-based authentication is used to establish trusted identities to control access to services and resources.
+Role-based access controls (RBAC) will be used to provide required authorization to restrict access rights and permissions.
+All the logs, raw security, and event data generated by the applications, databases, security devices, and host systems will be sent to a standard SIEM interface for aggregation, analysis, and detection.
+All Infrastructure, Management, and Security services and components are deployed to support the Production Application and Data Availability requirements aligned to the current on-premises Mainframe environment.
+
+
+Deployment Strategy for High Availability and Disaster Recovery:
+In general, mainframe applications are highly available. Some of them actually deliver up to five 9s of availability which can be further increased through clustering technology like Parallel Sysplex. The deployment model must meet the availability and resiliency requirements of on-premises mainframe environments.
+
+For this application, we will target a two-zone deployment on the Primary region with redundancy built in through another single-zone deployment on the DR side. This will give an optimal cost case for the application with 5000 MIPS where only 50% (2500 MIPS) is OLTP. 
+
+Batch processing, in general, doesn’t warrant that much built-in redundancy. Based on the business case, we can always move to a 2-zone deployment even on the DR side, but that will have an impact on the cost. Also, while migrating mainframe applications, it needs to be assessed whether they can leverage multi-zone deployments both on an Application and Database layer to gain the maximum benefit of distributed processing.
+
+At this point, we are not considering any RTO and RPO requirements. The deployment strategy may change based on the specific RTO and RPO requirements.
+
+
+Reference Architecture (AWS Cloud):
+
+As previously noted, I'll conclude this post by presenting an equivalent AWS reference architecture. This illustration will demonstrate that, despite some variations in the underlying services, the overall architectural structure remains largely consistent.
+
+For simplicity's sake and ease of readers, I have maintained the basic architecture while replacing the services and components with equivalent ones in AWS.
+
+A key point to highlight is the approach to database hosting. Though it is possible to run Db2 as a self-managed or AWS-managed application on Amazon Web Services (AWS), for the purpose of showcasing heterogeneous migration, we have leveraged Aurora PostgreSQL for both the DB2 and VSAM datasets.
+
+
+Conclusion:
+I have tried to capture the integral components through this solution, but every use case would be different and may need further refinements. Nonetheless, this could be referenced as a starting point for your migration solutions.
